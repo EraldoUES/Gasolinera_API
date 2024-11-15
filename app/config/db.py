@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 
 # URL de la base de datos
-DATABASE_URL = "mariadb+pymysql://root:1234@localhost:3306/gestion_combustible"
+DATABASE_URL = "postgresql://gestion_combustible_user:22kWQRk5sDQODSsRof5gFtJQKf5kHYqu@dpg-csrsqcjtq21c739p4oa0-a/gestion_combustible"
 
 # Configuración de la conexión
 engine = create_engine(DATABASE_URL)
