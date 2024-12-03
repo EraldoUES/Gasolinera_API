@@ -141,10 +141,15 @@ def login(login_request: LoginRequest, db: Session = Depends(get_db)):
 # Función para registrar el intento de login
 def registrar_login_usuario(db: Session, username: str, login_exitoso: bool):
     try:
-        # Usar `text()` para envolver la consulta SQL
-        db.execute(text("CALL gestion_combustible_login(:username, :login_exitoso)"),{'username': username, 'login_exitoso': login_exitoso})
+        # Usar SELECT en lugar de CALL para ejecutar la función
+        db.execute(
+            text("SELECT gestion_combustible_login(:username, :login_exitoso)"),
+            {'username': username, 'login_exitoso': login_exitoso}
+        )
         db.commit()
     except Exception as ex:
         # Si hay un error, lanzar una excepción HTTP con detalles
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error al registrar login: {str(ex)}")
-
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al registrar login: {str(ex)}"
+        )
