@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.config.db import SessionLocal  # Importamos la sesión local
 from app.models.gasolineras_model import gasolineras
-from app.schemas.gasolineras_schema import Gasolinera
+from app.schemas.gasolineras_schema import Gasolinera, Gasolinera2
 from typing import List
 
 # Instancia de APIRouter
@@ -30,8 +30,8 @@ def get_gasolinera(id_gasolinera: int, db: Session = Depends(get_db)):
     return gasolinera_found
 
 # Crear una nueva gasolinera
-@gasolineras_router.post("/gasolineras", response_model=Gasolinera, tags=["Gasolineras"])
-def create_gasolinera(gasolinera_data: Gasolinera, db: Session = Depends(get_db)):
+@gasolineras_router.post("/gasolineras", response_model=Gasolinera2, tags=["Gasolineras"])
+def create_gasolinera(gasolinera_data: Gasolinera2, db: Session = Depends(get_db)):
     result = db.execute(gasolineras.insert().values(gasolinera_data.dict()))
     db.commit()
     return db.execute(gasolineras.select().where(gasolineras.c.id_gasolinera == result.lastrowid)).first()

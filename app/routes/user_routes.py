@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.config.db import SessionLocal, key
 from app.models.user_model import usuarios
-from app.schemas.user_schema import User
+from app.models.rol_model import rol
+from app.schemas.user_schema import LoginRequest, User
 from typing import List
 from cryptography.fernet import Fernet
 from sqlalchemy import text
@@ -79,32 +80,71 @@ def delete_user(id_usr: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "User deleted"}
 
-
 # Ruta para login
 @user.post("/login", tags=["Users"])
-def login(username: str, password: str, db: Session = Depends(get_db)):
-    # Buscar el usuario en la base de datos por el nombre de usuario
+def login(login_request: LoginRequest, db: Session = Depends(get_db)):
+    username = login_request.username
+    password = login_request.password
+
+    print(f"Recibiendo solicitud de login para el usuario: {username}")
+
+    # Buscar usuario por nombre de usuario
     db_user = db.execute(usuarios.select().where(usuarios.c.username == username)).fetchone()
     
-    # Verificar si el usuario existe y si la contraseña es correcta
+    # Verificar si se encontró el usuario
     if not db_user:
+        print(f"Usuario no encontrado: {username}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    # Desencriptar la contraseña almacenada
-    stored_password = db_user.password
-    if fernet.decrypt(stored_password.encode('utf-8')).decode() != password:
-        # Si la contraseña no coincide, se registra el intento de login fallido en la base de datos
+    # Verificar si db_user es un Row, y acceder por el nombre de la columna
+    print(f"Usuario encontrado: {db_user}")
+    stored_password = db_user.password  # Asegúrate de acceder por nombre de columna
+
+    try:
+        # Desencriptar y verificar la contraseña
+        decrypted_password = fernet.decrypt(stored_password.encode('utf-8')).decode()
+        print(f"Contraseña desencriptada: {decrypted_password}")
+        if decrypted_password != password:
+            # Registrar intento fallido
+            print(f"Contraseña incorrecta para el usuario: {username}")
+            registrar_login_usuario(db, username, login_exitoso=False)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
+    except Exception as e:
+        # Error al desencriptar
+        print(f"Error al desencriptar la contraseña para el usuario {username}: {e}")
         registrar_login_usuario(db, username, login_exitoso=False)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
     
-    # Si el login es exitoso, registrar el intento en la base de datos
+    # Registrar intento exitoso
+    print(f"Login exitoso para el usuario: {username}")
     registrar_login_usuario(db, username, login_exitoso=True)
     
-    return {"message": "Login successful"}
+    # Obtener el rol del usuario
+    user_role = db.execute(rol.select().where(rol.c.id_rol == db_user.id_rol)).first()
+    print(f"Rol del usuario obtenido: {user_role}")
+
+    # Si no se encuentra el rol
+    if not user_role:
+        print(f"Rol no encontrado para el usuario: {username}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
+    
+    # Verificar el rol del usuario
+    if user_role.descripcion.lower() == "administrador":
+        print(f"Rol de administrador detectado para el usuario: {username}")
+        return {"message": "Login successful", "role": "admin","username": str(username),"id": str(db_user.id_usr)}
+    else:
+        print(f"Rol de usuario detectado para el usuario: {username}")
+        return {"message": "Login successful", "role": "user","username": str(username),"id": str(db_user.id_usr)}
+
+
 
 # Función para registrar el intento de login
 def registrar_login_usuario(db: Session, username: str, login_exitoso: bool):
-    # Usar `text()` para envolver la consulta SQL
-    db.execute(text("CALL gestion_combustible_login(:username, :login_exitoso)"), 
-               {'username': username, 'login_exitoso': login_exitoso})
-    db.commit()
+    try:
+        # Usar `text()` para envolver la consulta SQL
+        db.execute(text("CALL gestion_combustible_login(:username, :login_exitoso)"),{'username': username, 'login_exitoso': login_exitoso})
+        db.commit()
+    except Exception as ex:
+        # Si hay un error, lanzar una excepción HTTP con detalles
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error al registrar login: {str(ex)}")
+

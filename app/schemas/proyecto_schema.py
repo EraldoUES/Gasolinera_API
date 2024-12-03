@@ -6,3 +6,7 @@ class Proyecto(BaseModel):
     nombre: str
     direccion: str
     activo: Optional[bool] = True
+class Proyecto2(BaseModel):
+    nombre: str
+    direccion: str
+    activo: Optional[bool] = True

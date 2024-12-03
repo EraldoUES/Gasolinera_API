@@ -2,8 +2,10 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.config.db import SessionLocal  # Importamos la sesión local
 from app.models.log_model import log
-from app.schemas.log_schema import Log
+from app.models.user_model import usuarios
+from app.schemas.log_schema import Log, Log2
 from typing import List
+from sqlalchemy import select
 
 # Instancia de APIRouter
 log_router = APIRouter()
@@ -42,3 +44,56 @@ def delete_log(id_log: int, db: Session = Depends(get_db)):
     db.execute(log.delete().where(log.c.id_log == id_log))
     db.commit()
     return {"message": "Log entry deleted"}
+
+# Obtener todos los logs con datos completos de usuarios
+@log_router.get("/logs2", response_model=List[Log2], tags=["Logs"])
+def get_logs(db: Session = Depends(get_db)):
+    query = select(
+        log.c.id_log,
+        log.c.descripcion,
+        log.c.id_usr,
+        usuarios.c.username,
+        log.c.fecha
+    ).select_from(log).join(
+        usuarios, log.c.id_usr == usuarios.c.id_usr
+    )
+
+    result = db.execute(query).fetchall()
+    return [
+        Log2(
+            id_log=row.id_log,
+            descripcion=row.descripcion,
+            id_usr=row.id_usr,
+            username=row.username,
+            fecha=row.fecha,
+        )
+        for row in result
+    ]
+
+# Obtener un log específico por ID con datos completos de las tablas relacionadas
+@log_router.get("/logs2/{id_log}", response_model=Log2, tags=["Logs"])
+def get_log(id_log: int, db: Session = Depends(get_db)):
+    query = select(
+        log.c.id_log,
+        log.c.descripcion,
+        log.c.id_usr,
+        usuarios.c.username.label("username"),  # Nombre de usuario relacionado
+        log.c.fecha
+    ).select_from(log).join(
+        usuarios, log.c.id_usr == usuarios.c.id_usr
+    ).where(
+        log.c.id_log == id_log
+    )
+
+    log_entry = db.execute(query).first()
+    if not log_entry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Log entry not found")
+
+    # Convertir el resultado en una instancia de Log2
+    return Log2(
+        id_log=log_entry.id_log,
+        descripcion=log_entry.descripcion,
+        id_usr=log_entry.id_usr,
+        username=log_entry.username,
+        fecha=log_entry.fecha,
+    )

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.config.db import SessionLocal  # Importamos la sesión local
 from app.models.proyecto_model import proyecto
-from app.schemas.proyecto_schema import Proyecto
+from app.schemas.proyecto_schema import Proyecto, Proyecto2
 from typing import List
 
 # Instancia de APIRouter
@@ -30,8 +30,8 @@ def get_proyecto(id_proyecto: int, db: Session = Depends(get_db)):
     return proyecto_found
 
 # Crear un nuevo proyecto
-@proyecto_router.post("/proyectos", response_model=Proyecto, tags=["Proyectos"])
-def create_proyecto(proyecto_data: Proyecto, db: Session = Depends(get_db)):
+@proyecto_router.post("/proyectos", response_model=Proyecto2, tags=["Proyectos"])
+def create_proyecto(proyecto_data: Proyecto2, db: Session = Depends(get_db)):
     result = db.execute(proyecto.insert().values(proyecto_data.dict()))
     db.commit()
     return db.execute(proyecto.select().where(proyecto.c.id_proyecto == result.lastrowid)).first()

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.config.db import SessionLocal  # Importamos la sesión local
 from app.models.tipo_combustible_model import tipo_combustible
-from app.schemas.tipo_combustible_schema import TipoCombustible
+from app.schemas.tipo_combustible_schema import TipoCombustible, TipoCombustible2
 from typing import List
 
 # Instancia APIRouter
@@ -30,8 +30,8 @@ def get_tipo_combustible(id_tipo_combustible: int, db: Session = Depends(get_db)
     return tipo_found
 
 # Crear tipo de combustible
-@tipo_combustible_router.post("/tipos_combustible", response_model=TipoCombustible, tags=["Tipos Combustible"])
-def create_tipo_combustible(tipo_data: TipoCombustible, db: Session = Depends(get_db)):
+@tipo_combustible_router.post("/tipos_combustible", response_model=TipoCombustible2, tags=["Tipos Combustible"])
+def create_tipo_combustible(tipo_data: TipoCombustible2, db: Session = Depends(get_db)):
     result = db.execute(tipo_combustible.insert().values(tipo_data.dict()))
     db.commit()
     return db.execute(tipo_combustible.select().where(tipo_combustible.c.id_tipo_combustible == result.lastrowid)).first()

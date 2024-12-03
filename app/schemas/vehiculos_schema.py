@@ -9,3 +9,12 @@ class Vehiculo(BaseModel):
     rendimiento: float
     galonaje: float
     id_tipo_combustible: int
+class Vehiculo2(BaseModel):
+    id_vehiculo: Optional[int]
+    modelo: str
+    marca: str
+    placa: str
+    rendimiento: float
+    galonaje: float
+    id_tipo_combustible: int
+    descripcion: str

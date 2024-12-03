@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.config.db import SessionLocal  # Importamos la sesión local
 from app.models.rol_model import rol
-from app.schemas.rol_schema import Rol
+from app.schemas.rol_schema import Rol, Rol2
 from typing import List
 
 # Instancia de APIRouter
@@ -30,8 +30,8 @@ def get_rol(id_rol: int, db: Session = Depends(get_db)):
     return rol_found
 
 # Crear nuevo rol
-@rol_router.post("/roles", response_model=Rol, tags=["Roles"])
-def create_rol(rol_data: Rol, db: Session = Depends(get_db)):
+@rol_router.post("/roles", response_model=Rol2, tags=["Roles"])
+def create_rol(rol_data: Rol2, db: Session = Depends(get_db)):
     result = db.execute(rol.insert().values(rol_data.dict()))
     db.commit()
     return db.execute(rol.select().where(rol.c.id_rol == result.lastrowid)).first()
